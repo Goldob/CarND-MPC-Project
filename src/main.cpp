@@ -15,6 +15,7 @@
 using nlohmann::json;
 using std::string;
 using std::vector;
+using Eigen::VectorXd;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -53,6 +54,8 @@ int main() {
            */
           vector<double> local_ptsx;
           vector<double> local_ptsy;
+          VectorXd v_local_ptsx(ptsx.size());
+          VectorXd v_local_ptsy(ptsx.size());
           for (unsigned int i = 0; i < ptsx.size(); i++) {
             // Translation
             double ptx = ptsx[i] - px;
@@ -61,8 +64,16 @@ int main() {
             // Rotation
             local_ptsx.push_back( ptx * cos(psi) + pty * sin(psi));
             local_ptsy.push_back(-ptx * sin(psi) + pty * cos(psi));
+            
+            // Add points to Eigen vector as well (for polyfit)
+            v_local_ptsx(i) = local_ptsx[i];
+            v_local_ptsy(i) = local_ptsy[i];
           }
           
+          /**
+           * Approximate waypoints iwth a 3rd degree polynomial
+           */
+          VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 3);
           
           /**
            * TODO: Calculate steering angle and throttle using MPC.
