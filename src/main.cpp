@@ -49,6 +49,22 @@ int main() {
           double v = j[1]["speed"];
 
           /**
+           * Transform waypoints to the coordinate space of the vehicle
+           */
+          vector<double> local_ptsx;
+          vector<double> local_ptsy;
+          for (unsigned int i = 0; i < ptsx.size(); i++) {
+            // Translation
+            double ptx = ptsx[i] - px;
+            double pty = ptsy[i] - py;
+            
+            // Rotation
+            local_ptsx.push_back( ptx * cos(psi) + pty * sin(psi));
+            local_ptsy.push_back(-ptx * sin(psi) + pty * cos(psi));
+          }
+          
+          
+          /**
            * TODO: Calculate steering angle and throttle using MPC.
            * Both are in between [-1, 1].
            */
@@ -76,8 +92,8 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           // Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
+          vector<double> next_x_vals = local_ptsx;
+          vector<double> next_y_vals = local_ptsy;
 
           /**
            * TODO: add (x,y) points to list here, points are in reference to 
