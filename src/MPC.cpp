@@ -116,7 +116,13 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   for (int i = delta_start; i < a_start; ++i) {
     vars_lowerbound[i] = -0.436332;
     vars_upperbound[i] = 0.436332;
-}
+  }
+  
+  // Acceleration/decceleration upper and lower limits.
+  for (int i = a_start; i < n_vars; ++i) {
+    vars_lowerbound[i] = -1.0;
+    vars_upperbound[i] = 1.0;
+  }
 
   // Lower and upper limits for the constraints
   // Should be 0 besides initial state.
