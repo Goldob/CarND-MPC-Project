@@ -73,7 +73,7 @@ int main() {
           /**
            * Approximate waypoints with a 3rd degree polynomial
            */
-          VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 3);
+          VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 2);
           
           /**
            * Set up state variables
