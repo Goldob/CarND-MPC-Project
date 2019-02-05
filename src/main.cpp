@@ -90,19 +90,24 @@ int main() {
            */
           auto vars = mpc.Solve(state, coeffs);
           
-          double steer_value = vars[6];
-          double throttle_value = vars[7];
+          double steer_value = vars[0];
+          double throttle_value = vars[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the 
           //   steering value back. Otherwise the values will be in between 
           //   [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-          msgJson["steering_angle"] = steer_value / deg2rad(25);
+          msgJson["steering_angle"] = - steer_value / deg2rad(25);
           msgJson["throttle"] = throttle_value;
 
           // Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
+          
+          for (int i = 0; i < (vars.size() - 2) / 2; i++) {
+            mpc_x_vals.push_back(vars[2 + 2*i]);
+            mpc_y_vals.push_back(vars[3 + 2*i]);       
+          }
 
           /**
            * TODO: add (x,y) points to list here, points are in reference to 

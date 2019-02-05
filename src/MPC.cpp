@@ -261,8 +261,13 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
    *   creates a 2 element double vector.
    */
   
-  return {solution.x[x_start + 1],   solution.x[y_start + 1],
-          solution.x[psi_start + 1], solution.x[v_start + 1],
-          solution.x[cte_start + 1], solution.x[epsi_start + 1],
-          solution.x[delta_start], solution.x[a_start]};
+  std::vector<double> ret_val;
+  ret_val.push_back(solution.x[delta_start]);
+  ret_val.push_back(solution.x[a_start]);
+  for (int i = 1; i < N; i++) {
+    ret_val.push_back(solution.x[x_start + i]);
+    ret_val.push_back(solution.x[y_start + i]);            
+  }
+  
+  return ret_val;
 }
