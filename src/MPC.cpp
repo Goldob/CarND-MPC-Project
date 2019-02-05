@@ -10,10 +10,10 @@ using CppAD::AD;
 using Eigen::VectorXd;
 
 /**
- * TODO: Set the timestep length and duration
+ * Set the timestep length and duration
  */
-size_t N = 0;
-double dt = 0;
+size_t N = 50;
+double dt = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -26,6 +26,15 @@ double dt = 0;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
+
+size_t x_start = 0;
+size_t y_start = x_start + N;
+size_t psi_start = y_start + N;
+size_t v_start = psi_start + N;
+size_t cte_start = v_start + N;
+size_t epsi_start = cte_start + N;
+size_t delta_start = epsi_start + N;
+size_t a_start = delta_start + N - 1;
 
 class FG_eval {
  public:
@@ -55,17 +64,24 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   bool ok = true;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
+  double x = state[0];
+  double y = state[1];
+  double psi = state[2];
+  double v = state[3];
+  double cte = state[4];
+  double epsi = state[5];
+  
   /**
-   * TODO: Set the number of model variables (includes both states and inputs).
+   * Set the number of model variables (includes both states and inputs).
    * For example: If the state is a 4 element vector, the actuators is a 2
    *   element vector and there are 10 timesteps. The number of variables is:
    *   4 * 10 + 2 * 9
    */
-  size_t n_vars = 0;
+  size_t n_vars = N * 6  + (N - 1) * 2;
   /**
-   * TODO: Set the number of constraints
+   * Set the number of constraints
    */
-  size_t n_constraints = 0;
+  size_t n_constraints = N * 6;
 
   // Initial value of the independent variables.
   // SHOULD BE 0 besides initial state.
@@ -74,6 +90,16 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
     vars[i] = 0;
   }
 
+  /*
+   * Set initial state variables
+   */
+  vars[x_start] = x;
+  vars[y_start] = y;
+  vars[psi_start] = psi;
+  vars[v_start] = v;
+  vars[cte_start] = cte;
+  vars[epsi_start] = epsi;
+  
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
   /**
