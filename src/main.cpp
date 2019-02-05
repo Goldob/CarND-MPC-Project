@@ -76,6 +76,14 @@ int main() {
           VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 3);
           
           /**
+           * Set up state variables
+           */
+          double cte  = polyeval(coeffs, px) - py;
+          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
+          
+          VectorXd state(6);
+          state << px, py, psi, v, cte, epsi;
+          /**
            * TODO: Calculate steering angle and throttle using MPC.
            * Both are in between [-1, 1].
            */
