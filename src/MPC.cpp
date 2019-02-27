@@ -115,7 +115,7 @@ class FG_eval {
       fg[1 + psi_start + t] = psi1 - (psi0 + v0 / Lf * (prev_delta * latency + delta0 * (dt - latency)));
       fg[1 + v_start + t] = v1 - (v0 + prev_a * latency + a0 * (dt - latency));
       fg[1 + cte_start + t] = cte1 - (f1 - y1);
-      fg[1 + epsi_start + t] = epsi1 - (psi1 - psides1);
+      fg[1 + epsi_start + t] = epsi1 - (psides1 - psi1);
 
 	  prev_delta = delta0;
 	  prev_a = a0;
