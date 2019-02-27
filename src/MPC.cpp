@@ -15,7 +15,9 @@ using Eigen::VectorXd;
 size_t N = 10;
 double dt = 4.0;
 
-double ref_v = 1.0;
+double ref_v = 0.75;
+
+double latency = 0.1;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -95,6 +97,8 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
+	AD<double> prev_delta = 0;
+	AD<double> prev_a = 0;
     for (unsigned int t = 1; t < N; ++t) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + t];
@@ -131,10 +135,13 @@ class FG_eval {
       // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-      fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
-      fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
+      fg[1 + psi_start + t] = psi1 - (psi0 + v0 / Lf * (prev_delta * latency + delta0 * (dt - latency)));
+      fg[1 + v_start + t] = v1 - (v0 + prev_a * latency + a0 * (dt - latency));
       fg[1 + cte_start + t] = cte1 - (f1 - y1);
       fg[1 + epsi_start + t] = epsi1 - (psi1 - psides1);
+
+	  prev_delta = delta0;
+	  prev_a = a0;
     }
   }
 };
