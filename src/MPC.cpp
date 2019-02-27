@@ -48,31 +48,31 @@ class FG_eval {
   void operator()(ADvector& fg, const ADvector& vars) {
     /**
      * TODO: implement MPC
-     * `fg` is a vector of the cost constraints, `vars` is a vector of variable 
+     * `fg` is a vector of the cost constraints, `vars` is a vector of variable
      *   values (state & actuators)
      * NOTE: You'll probably go back and forth between this function and
      *   the Solver function below.
      */
-    
+
     // The cost is stored is the first element of `fg`.
     // Any additions to the cost should be added to `fg[0]`.
     fg[0] = 0;
 
     // The part of the cost based on the reference state.
-    for (int t = 0; t < N; ++t) {
+    for (unsigned int t = 0; t < N; ++t) {
       fg[0] += CppAD::pow(vars[cte_start + t], 2);
       fg[0] += CppAD::pow(vars[epsi_start + t], 2);
       fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
-    for (int t = 0; t < N - 1; ++t) {
+    for (unsigned int t = 0; t < N - 1; ++t) {
       fg[0] += CppAD::pow(vars[delta_start + t], 2);
       fg[0] += CppAD::pow(vars[a_start + t], 2);
     }
 
     // Minimize the value gap between sequential actuations.
-    for (int t = 0; t < N - 2; ++t) {
+    for (unsigned int t = 0; t < N - 2; ++t) {
       fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
       fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
@@ -95,7 +95,7 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
-    for (int t = 1; t < N; ++t) {
+    for (unsigned int t = 1; t < N; ++t) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + t];
       AD<double> y1 = vars[y_start + t];
@@ -150,14 +150,14 @@ MPC::~MPC() {}
 std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   bool ok = true;
   typedef CPPAD_TESTVECTOR(double) Dvector;
-  
+
   double x = state[0];
   double y = state[1];
   double psi = state[2];
   double v = state[3];
   double cte = state[4];
   double epsi = state[5];
-  
+
   /**
    * Set the number of model variables (includes both states and inputs).
    * For example: If the state is a 4 element vector, the actuators is a 2
@@ -173,7 +173,7 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   // Initial value of the independent variables.
   // SHOULD BE 0 besides initial state.
   Dvector vars(n_vars);
-  for (int i = 0; i < n_vars; ++i) {
+  for (unsigned int i = 0; i < n_vars; ++i) {
     vars[i] = 0;
   }
 
@@ -186,27 +186,27 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   vars[v_start] = v;
   vars[cte_start] = cte;
   vars[epsi_start] = epsi;
-  
+
   Dvector vars_lowerbound(n_vars);
   Dvector vars_upperbound(n_vars);
-  
+
   /**
    * Set lower and upper limits for variables.
    */
-   for (int i = 0; i < delta_start; ++i) {
+   for (unsigned int i = 0; i < delta_start; ++i) {
     vars_lowerbound[i] = -1.0e19;
     vars_upperbound[i] = 1.0e19;
   }
 
   // The upper and lower limits of delta are set to -25 and 25
   // degrees (values in radians).
-  for (int i = delta_start; i < a_start; ++i) {
+  for (unsigned int i = delta_start; i < a_start; ++i) {
     vars_lowerbound[i] = -0.436332;
     vars_upperbound[i] = 0.436332;
   }
-  
+
   // Acceleration/decceleration upper and lower limits.
-  for (int i = a_start; i < n_vars; ++i) {
+  for (unsigned int i = a_start; i < n_vars; ++i) {
     vars_lowerbound[i] = -1.0;
     vars_upperbound[i] = 1.0;
   }
@@ -215,11 +215,11 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   // Should be 0 besides initial state.
   Dvector constraints_lowerbound(n_constraints);
   Dvector constraints_upperbound(n_constraints);
-  for (int i = 0; i < n_constraints; ++i) {
+  for (unsigned int i = 0; i < n_constraints; ++i) {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
-  
+
   // object that computes objective and constraints
   FG_eval fg_eval(coeffs);
 
@@ -245,7 +245,7 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   CppAD::ipopt::solve<Dvector, FG_eval>(
       options, vars, vars_lowerbound, vars_upperbound, constraints_lowerbound,
       constraints_upperbound, fg_eval, solution);
-  
+
   // Check some of the solution values
   ok &= solution.status == CppAD::ipopt::solve_result<Dvector>::success;
 
@@ -260,14 +260,14 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
    * {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
    *   creates a 2 element double vector.
    */
-  
+
   std::vector<double> ret_val;
   ret_val.push_back(solution.x[delta_start]);
   ret_val.push_back(solution.x[a_start]);
-  for (int i = 1; i < N; i++) {
+  for (unsigned int i = 1; i < N; i++) {
     ret_val.push_back(solution.x[x_start + i]);
-    ret_val.push_back(solution.x[y_start + i]);            
+    ret_val.push_back(solution.x[y_start + i]);
   }
-  
+
   return ret_val;
 }

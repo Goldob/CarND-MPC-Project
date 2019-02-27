@@ -60,58 +60,58 @@ int main() {
             // Translation
             double ptx = ptsx[i] - px;
             double pty = ptsy[i] - py;
-            
+
             // Rotation
             local_ptsx.push_back( ptx * cos(psi) + pty * sin(psi));
             local_ptsy.push_back(-ptx * sin(psi) + pty * cos(psi));
-            
+
             // Add points to Eigen vector as well (for polyfit)
             v_local_ptsx(i) = local_ptsx[i];
             v_local_ptsy(i) = local_ptsy[i];
           }
-          
+
           /**
            * Approximate waypoints with a 3rd degree polynomial
            */
           VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 2);
-          
+
           /**
            * Set up state variables
            */
           double cte  = polyeval(coeffs, px) - py;
           double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
-          
+
           VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
-          
+
           /**
            * Calculate steering angle and throttle using MPC.
            * Both are in between [-1, 1].
            */
           auto vars = mpc.Solve(state, coeffs);
-          
+
           double steer_value = vars[0];
           double throttle_value = vars[1];
 
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the 
-          //   steering value back. Otherwise the values will be in between 
+          // NOTE: Remember to divide by deg2rad(25) before you send the
+          //   steering value back. Otherwise the values will be in between
           //   [-deg2rad(25), deg2rad(25] instead of [-1, 1].
           msgJson["steering_angle"] = - steer_value / deg2rad(25);
           msgJson["throttle"] = throttle_value;
 
-          // Display the MPC predicted trajectory 
+          // Display the MPC predicted trajectory
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
-          
+
           for (int i = 0; i < (vars.size() - 2) / 2; i++) {
             mpc_x_vals.push_back(vars[2 + 2*i]);
-            mpc_y_vals.push_back(vars[3 + 2*i]);       
+            mpc_y_vals.push_back(vars[3 + 2*i]);
           }
 
           /**
-           * TODO: add (x,y) points to list here, points are in reference to 
-           *   the vehicle's coordinate system the points in the simulator are 
+           * TODO: add (x,y) points to list here, points are in reference to
+           *   the vehicle's coordinate system the points in the simulator are
            *   connected by a Green line
            */
 
@@ -123,8 +123,8 @@ int main() {
           vector<double> next_y_vals = local_ptsy;
 
           /**
-           * TODO: add (x,y) points to list here, points are in reference to 
-           *   the vehicle's coordinate system the points in the simulator are 
+           * TODO: add (x,y) points to list here, points are in reference to
+           *   the vehicle's coordinate system the points in the simulator are
            *   connected by a Yellow line
            */
 
@@ -170,6 +170,6 @@ int main() {
     std::cerr << "Failed to listen to port" << std::endl;
     return -1;
   }
-  
+
   h.run();
 }
