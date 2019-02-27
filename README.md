@@ -1,116 +1,35 @@
-# CarND-Controls-MPC
-Self-Driving Car Engineer Nanodegree Program
+# MPC Control Project
 
----
+The following is a solution for [MPC Control Project](https://github.com/udacity/CarND-MPC-Project) from Term 2 of Udacity's Self Driving Car Nanodegree. Refer to the main repository for compilation and testing instructions.
 
-## Dependencies
+## The model
 
-* cmake >= 3.5
- * All OSes: [click here for installation instructions](https://cmake.org/install/)
-* make >= 4.1(mac, linux), 3.81(Windows)
-  * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
-* gcc/g++ >= 5.4
-  * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools]((https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
-* [uWebSockets](https://github.com/uWebSockets/uWebSockets)
-  * Run either `install-mac.sh` or `install-ubuntu.sh`.
-  * If you install from source, checkout to commit `e94b6e1`, i.e.
-    ```
-    git clone https://github.com/uWebSockets/uWebSockets
-    cd uWebSockets
-    git checkout e94b6e1
-    ```
-    Some function signatures have changed in v0.14.x. See [this PR](https://github.com/udacity/CarND-MPC-Project/pull/3) for more details.
+I chose a kinematic model similar to the one used in MPC lessons. The state of the vehicle is represented by the following variables:
 
-* **Ipopt and CppAD:** Please refer to [this document](https://github.com/udacity/CarND-MPC-Project/blob/master/install_Ipopt_CppAD.md) for installation instructions.
-* [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page). This is already part of the repo so you shouldn't have to worry about it.
-* Simulator. You can download these from the [releases tab](https://github.com/udacity/self-driving-car-sim/releases).
-* Not a dependency but read the [DATA.md](./DATA.md) for a description of the data sent back from the simulator.
+- <img src="https://latex.codecogs.com/gif.latex?x" />, <img src="https://latex.codecogs.com/gif.latex?y" /> - cartesian coordinates;
+- <img src="https://latex.codecogs.com/gif.latex?\psi" /> - yaw angle;
+- <img src="https://latex.codecogs.com/gif.latex?v" /> - velocity.
 
+Two types of commands are used, steering angle <img src="https://latex.codecogs.com/gif.latex?\delta" /> and acceleration <img src="https://latex.codecogs.com/gif.latex?a" />. The state update equations look as follows:
 
-## Basic Build Instructions
+- <img src="https://latex.codecogs.com/gif.latex?x_t = x_{t-1} + v_{t-1} * \cos{\psi_{t-1}} * \Delta t" />
+- <img src="https://latex.codecogs.com/gif.latex?y_t = y_{t-1} + v_{t-1} * \sin{\psi_{t-1}} * \Delta t" />
+- <img src="https://latex.codecogs.com/gif.latex?\psi_t = \psi_{t-1} + \frac{v_{t-1}}{L_f} \left(\delta_{t-2} * T + \delta_{t-1} * \left(\Delta t - T\right)\right)" />
+- <img src="https://latex.codecogs.com/gif.latex?v_t = v_{t-1} + a_{t-2} * T + a_{t-1} * \left(\Delta t - T\right)" />
 
-1. Clone this repo.
-2. Make a build directory: `mkdir build && cd build`
-3. Compile: `cmake .. && make`
-4. Run it: `./mpc`.
+where <img src="https://latex.codecogs.com/gif.latex?T" /> is the latency of the system (0.1 s) and <img src="https://latex.codecogs.com/gif.latex?L_f" /> is the wheelbase of the vehicle. Additionally, for each state two error functions are computed:
 
-## Build with Docker-Compose
-The docker-compose can run the project into a container
-and exposes the port required by the simulator to run.
+- <img src="https://latex.codecogs.com/gif.latex?XTE_t = f(x_t) - y(t)" />
+- <img src="https://latex.codecogs.com/gif.latex?e\psi_t = atan(f'(x_t)) - \psi_t" />
 
-1. Clone this repo.
-2. Build image: `docker-compose build`
-3. Run Container: `docker-compose up`
-4. On code changes repeat steps 2 and 3.
+Where <img src="https://latex.codecogs.com/gif.latex?f(x)" /> is the polynomial fitted to waypoints.
 
-## Tips
+## Timestep Length and Elapsed Duration (N & dt)
 
-1. The MPC is recommended to be tested on examples to see if implementation behaves as desired. One possible example
-is the vehicle offset of a straight line (reference). If the MPC implementation is correct, it tracks the reference line after some timesteps(not too many).
-2. The `lake_track_waypoints.csv` file has waypoints of the lake track. This could fit polynomials and points and see of how well your model tracks curve. NOTE: This file might be not completely in sync with the simulator so your solution should NOT depend on it.
-3. For visualization this C++ [matplotlib wrapper](https://github.com/lava/matplotlib-cpp) could be helpful.)
-4.  Tips for setting up your environment are available [here](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/23d376c7-0195-4276-bdf0-e02f1f3c665d)
-5. **VM Latency:** Some students have reported differences in behavior using VM's ostensibly a result of latency.  Please let us know if issues arise as a result of a VM environment.
+I chose number of steps <img src="https://latex.codecogs.com/gif.latex?N" /> to equal 10 and a single time step <img src="https://latex.codecogs.com/gif.latex?\Delta_t" /> to be equal 4s. The choice was dictated primarily by computational efficiency requirements - the controller needs to satisfy hard real time constraints in order to be usable. Previously tried larger values (up to 50) for the number of steps caused increased latency, and in turn overshooting the trajectory and eventually falling of the track.
 
-## Editor Settings
+On the other hand, time step size was increased in comparison to the original value of 0.1s. The reason for that is that with the prediction window <img src="https://latex.codecogs.com/gif.latex?N * \Delta_t" /> not being large enough, the model did not look ahead for a distance large enough to produce viable commands. Obviously, increasing size of the time step has negative effect on precision of the system - that's why I stopped increasing it once achieved satisfactory performance.
 
-We have kept editor configuration files out of this repo to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
+## Model Predictive Control with Latency
 
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-More information is only accessible by people who are already enrolled in Term 2
-of CarND. If you are enrolled, see [the project page](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/f1820894-8322-4bb3-81aa-b26b3c6dcbaf/lessons/b1ff3be0-c904-438e-aad3-2b5379f0e0c3/concepts/1a2255a0-e23c-44cf-8d41-39b8a3c8264a)
-for instructions and the project rubric.
-
-## Hints!
-
-* You don't have to follow this directory structure, but if you do, your work
-  will span all of the .cpp files here. Keep an eye out for TODOs.
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. We omitted IDE profiles to ensure
-students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. Most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
-
-## How to write a README
-A well written README file can enhance your project and portfolio and develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+Two methods of compensation for latency are used. First is reducing target velocity in order to minimize distance travelled between a command is issued and executed. Second is the introduction of constant <img src="https://latex.codecogs.com/gif.latex?T" /> in state update equations. We assume that for a short period of time after issuing a command, the previously issued command still takes effect.
