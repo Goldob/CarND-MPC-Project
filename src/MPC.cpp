@@ -13,9 +13,9 @@ using Eigen::VectorXd;
  * Set the timestep length and duration
  */
 size_t N = 10;
-double dt = 2.0;
+double dt = 4.0;
 
-double ref_v = 0.5;
+double ref_v = 1.0;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -60,14 +60,14 @@ class FG_eval {
 
     // The part of the cost based on the reference state.
     for (unsigned int t = 0; t < N; ++t) {
-      fg[0] += CppAD::pow(vars[cte_start + t], 2);
-      fg[0] += CppAD::pow(vars[epsi_start + t], 2);
-      fg[0] += 5*CppAD::pow(vars[v_start + t] - ref_v, 2);
+      fg[0] += 10*CppAD::pow(vars[cte_start + t], 2);
+      fg[0] += 5*CppAD::pow(CppAD::sin(vars[epsi_start + t]), 2);
+      fg[0] += 15*CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
     for (unsigned int t = 0; t < N - 1; ++t) {
-      fg[0] += 5*CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += CppAD::pow(vars[delta_start + t], 2);
       fg[0] += CppAD::pow(vars[a_start + t], 2);
     }
 
@@ -116,8 +116,8 @@ class FG_eval {
       AD<double> delta0 = vars[delta_start + t - 1];
       AD<double> a0 = vars[a_start + t - 1];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      AD<double> f1 = coeffs[0] + coeffs[1] * x1 + coeffs[2] * x1*x1;
+      AD<double> psides1 = CppAD::atan(coeffs[1] + 2 * coeffs[2] * x1);
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -133,10 +133,8 @@ class FG_eval {
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
       fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
       fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
-      fg[1 + cte_start + t] =
-          cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
-      fg[1 + epsi_start + t] =
-          epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+      fg[1 + cte_start + t] = cte1 - (f1 - y1);
+      fg[1 + epsi_start + t] = epsi1 - (psi1 - psides1);
     }
   }
 };
@@ -151,9 +149,6 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   bool ok = true;
   typedef CPPAD_TESTVECTOR(double) Dvector;
 
-  double x = state[0];
-  double y = state[1];
-  double psi = state[2];
   double v = state[3];
   double cte = state[4];
   double epsi = state[5];
@@ -180,9 +175,9 @@ std::vector<double> MPC::Solve(const VectorXd &state, const VectorXd &coeffs) {
   /*
    * Set initial state variables
    */
-  vars[x_start] = x;
-  vars[y_start] = y;
-  vars[psi_start] = psi;
+  vars[x_start] = 0;
+  vars[y_start] = 0;
+  vars[psi_start] = 0;
   vars[v_start] = v;
   vars[cte_start] = cte;
   vars[epsi_start] = epsi;
