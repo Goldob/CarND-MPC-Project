@@ -17,20 +17,6 @@ double dt = 4.0;
 
 double ref_v = 0.75;
 
-double latency = 0.1;
-
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-//   simulator around in a circle with a constant steering angle and velocity on
-//   a flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-//   presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-
 size_t x_start = 0;
 size_t y_start = x_start + N;
 size_t psi_start = y_start + N;
@@ -85,8 +71,6 @@ class FG_eval {
     fg[1 + epsi_start] = vars[epsi_start];
 
     // The rest of the constraints
-	AD<double> prev_delta = 0;
-	AD<double> prev_a = 0;
     for (unsigned int t = 1; t < N; ++t) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + t];
@@ -112,13 +96,10 @@ class FG_eval {
 
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-      fg[1 + psi_start + t] = psi1 - (psi0 + v0 / Lf * (prev_delta * latency + delta0 * (dt - latency)));
-      fg[1 + v_start + t] = v1 - (v0 + prev_a * latency + a0 * (dt - latency));
+      fg[1 + psi_start + t] = psi1 - (psi0 + v0 / Lf * delta0 * dt);
+      fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
       fg[1 + cte_start + t] = cte1 - (f1 - y1);
       fg[1 + epsi_start + t] = epsi1 - (psides1 - psi1);
-
-	  prev_delta = delta0;
-	  prev_a = a0;
     }
   }
 };

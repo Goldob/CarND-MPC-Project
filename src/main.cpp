@@ -22,6 +22,8 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+const double latency_dt = 0.1;
+
 int main() {
   uWS::Hub h;
 
@@ -48,6 +50,8 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
+		  double delta = j[1]["steering_angle"];
+		  double a = j[1]["throttle"];
 
           /**
            * Transform waypoints to the coordinate space of the vehicle
@@ -81,6 +85,15 @@ int main() {
           double cte  = polyeval(coeffs, px) - py;
           double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
 
+		  // Add latency of 100ms
+		  px = v * cos(psi) * latency_dt;
+		  py = v * sin(psi) * latency_dt;
+		  psi = v * delta / Lf * latency_dt;
+		  v = v + a * latency_dt;
+		  cte = cte + v * sin(epsi) * latency_dt;
+		  epsi = epsi + v * delta / Lf * latency_dt;
+
+		  // Add everything to the state vector
           VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
 
