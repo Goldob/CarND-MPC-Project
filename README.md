@@ -17,7 +17,7 @@ Two types of commands are used, steering angle ![](img/delta.gif) and accelerati
 - ![](img/psi_t.gif)
 - ![](img/v_t.gif)
 
-where ![](img/T.gif) is the latency of the system (0.1 s) and ![](img/L_f.gif) is the wheelbase of the vehicle. Additionally, for each state two error functions are computed:
+where ![](img/L_f.gif) is the wheelbase of the vehicle. Additionally, for each state two error functions are computed:
 
 - ![](img/XTE_t.gif)
 - ![](img/epsi_t.gif)
@@ -26,10 +26,10 @@ Where <img src="https://latex.codecogs.com/gif.latex?f(x)" /> is the polynomial 
 
 ## Timestep Length and Elapsed Duration (N & dt)
 
-I chose number of steps ![](img/N.gif) to equal 10 and a single time step ![](img/dt.gif) to be equal 4s. The choice was dictated primarily by computational efficiency requirements - the controller needs to satisfy hard real time constraints in order to be usable. Previously tried larger values (up to 50) for the number of steps caused increased latency, and in turn overshooting the trajectory and eventually falling of the track.
+I chose number of steps ![](img/N.gif) to equal 10 and a single time step ![](img/dt.gif) to be equal 0.25s. The choice was dictated primarily by computational efficiency requirements - the controller needs to satisfy hard real time constraints in order to be usable. Previously tried larger values (up to 50) for the number of steps caused increased latency, and in turn overshooting the trajectory and eventually falling of the track.
 
-On the other hand, time step size was increased in comparison to the original value of 0.1s. The reason for that is that with the prediction window ![](img/Ndt.gif) not being large enough, the model did not look ahead for a distance large enough to produce viable commands. Obviously, increasing size of the time step has negative effect on precision of the system - that's why I stopped increasing it once achieved satisfactory performance.
+On the other hand, time step need to be large enough that the prediction window ![](img/Ndt.gif) could produce viable commands. Previously it had to be as much as 4s because of small speed of the vehicle. I was able to reduce it (thus increase accuracy) by increasing velocity.
 
 ## Model Predictive Control with Latency
 
-Two methods of compensation for latency are used. First is reducing target velocity in order to minimize distance travelled between a command is issued and executed. Second is the introduction of constant ![](img/T.gif) in state update equations. We assume that for a short period of time after issuing a command, the previously issued command still takes effect.
+To compensate for system latency, state of the system is first projected into the future by a given timestep before being fed to MPC. While this timestep could be a constant equal to the assumed latency of 100ms, it would not account for the time required for computations - which was responsible for about 10% of the total latency on my machine. That's why I decided to compute latency dynamically based on time delta between a message is received from game server and commands are sent.
