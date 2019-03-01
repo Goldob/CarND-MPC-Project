@@ -59,9 +59,6 @@ int main() {
 		  // MPH to m/s
 		  v = v * 0.44704;
 
-		  // Normalized angle to radians
-		  // delta = delta * deg2rad(25);
-
 		  // Add latency of 100ms
 		  px = px + v * cos(psi) * latency_dt;
 		  py = py + v * sin(psi) * latency_dt;
