@@ -60,12 +60,12 @@ int main() {
 		  v = v * 0.44704;
 
 		  // Normalized angle to radians
-		  delta = delta * deg2rad(25);
+		  // delta = delta * deg2rad(25);
 
 		  // Add latency of 100ms
 		  px = px + v * cos(psi) * latency_dt;
 		  py = py + v * sin(psi) * latency_dt;
-		  psi = psi + v * delta / Lf * latency_dt;
+		  psi = psi - v * delta / Lf * latency_dt;
 		  v = v + a * latency_dt;
 
           /**
@@ -90,7 +90,7 @@ int main() {
           }
 
           /**
-           * Approximate waypoints with a 3rd degree polynomial
+           * Approximate waypoints with a 2nd degree polynomial
            */
           VectorXd coeffs = polyfit(v_local_ptsx, v_local_ptsy, 2);
 

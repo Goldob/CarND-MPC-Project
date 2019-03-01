@@ -15,7 +15,7 @@ using Eigen::VectorXd;
 size_t N = 10;
 double dt = 0.25;
 
-double ref_v = 7.5;
+double ref_v = 20.0;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
