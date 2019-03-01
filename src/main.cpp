@@ -22,7 +22,8 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
-const double latency_dt = 0.1;
+double latency_dt = 0.0;
+const double k = 0.1;
 
 int main() {
   uWS::Hub h;
@@ -38,6 +39,8 @@ int main() {
     string sdata = string(data).substr(0, length);
     std::cout << sdata << std::endl;
     if (sdata.size() > 2 && sdata[0] == '4' && sdata[1] == '2') {
+	  auto start = std::chrono::system_clock::now();
+
       string s = hasData(sdata);
       if (s != "") {
         auto j = json::parse(s);
@@ -52,6 +55,18 @@ int main() {
           double v = j[1]["speed"];
 		  double delta = j[1]["steering_angle"];
 		  double a = j[1]["throttle"];
+
+		  // MPH to m/s
+		  v = v * 0.44704;
+
+		  // Normalized angle to radians
+		  delta = delta * deg2rad(25);
+
+		  // Add latency of 100ms
+		  px = px + v * cos(psi) * latency_dt;
+		  py = py + v * sin(psi) * latency_dt;
+		  psi = psi + v * delta / Lf * latency_dt;
+		  v = v + a * latency_dt;
 
           /**
            * Transform waypoints to the coordinate space of the vehicle
@@ -82,20 +97,12 @@ int main() {
           /**
            * Set up state variables
            */
-          double cte  = polyeval(coeffs, px) - py;
-          double epsi = psi - atan(coeffs[1] + 2 * coeffs[2] * px);
-
-		  // Add latency of 100ms
-		  px = v * cos(psi) * latency_dt;
-		  py = v * sin(psi) * latency_dt;
-		  psi = v * delta / Lf * latency_dt;
-		  v = v + a * latency_dt;
-		  cte = cte + v * sin(epsi) * latency_dt;
-		  epsi = epsi + v * delta / Lf * latency_dt;
+          double cte  = polyeval(coeffs, 0) - py;
+          double epsi = psi - atan(coeffs[1]);
 
 		  // Add everything to the state vector
           VectorXd state(6);
-          state << px, py, psi, v, cte, epsi;
+          state << 0, 0, 0, v, cte, epsi;
 
           /**
            * Calculate steering angle and throttle using MPC.
@@ -117,9 +124,9 @@ int main() {
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
-          for (int i = 0; i < (vars.size() - 2) / 2; i++) {
-            mpc_x_vals.push_back(vars[2 + 2*i]);
-            mpc_y_vals.push_back(vars[3 + 2*i]);
+          for (int i = 0; i < vars.size() / 2; i++) {
+            mpc_x_vals.push_back(vars[2*i]);
+            mpc_y_vals.push_back(vars[2*i + 1]);
           }
 
           msgJson["mpc_x"] = mpc_x_vals;
@@ -144,6 +151,9 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE SUBMITTING.
           std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		  auto end = std::chrono::system_clock::now();
+		  auto diff = std::chrono::duration<float, std::chrono::seconds::period>(end-start);
+		  latency_dt = k * diff.count() + (1.0 - k) * latency_dt;
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }  // end "telemetry" if
       } else {
