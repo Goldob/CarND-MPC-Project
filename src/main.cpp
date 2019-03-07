@@ -121,7 +121,7 @@ int main() {
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
 
-          for (int i = 0; i < vars.size() / 2; i++) {
+          for (int i = 1; i < vars.size() / 2; i++) {
             mpc_x_vals.push_back(vars[2*i]);
             mpc_y_vals.push_back(vars[2*i + 1]);
           }
